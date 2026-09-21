@@ -45,8 +45,7 @@ export async function solicitarGeneracionDePropuestas(
   };
 
   const controlador = new AbortController();
-  const tiempoLimite = setTimeout(() => controlador.abort(), 20000); // 20s de margen
-
+  const tiempoLimite = setTimeout(() => controlador.abort(), 60000); // 60s de margen
   let respuesta: Response;
   try {
     respuesta = await fetch(url, {
