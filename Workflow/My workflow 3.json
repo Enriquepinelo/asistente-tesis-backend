@@ -1,0 +1,524 @@
+{
+  "name": "My workflow 3",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "planificador-tesis",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fc5cae25-6b6c-4e0b-a8ac-9dd4ff682026",
+      "name": "Recibir Solicitud de Tesis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1936,
+        288
+      ],
+      "webhookId": "6e24120e-7dbb-4e24-b258-8da4192e55f0"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\nconst salida = [];\n\n// Campos obligatorios para poder generar la propuesta\nconst obligatorios = [\n  'nombre_estudiante',\n  'correo',\n  'carnet',\n  'carrera',\n  'sede',\n  'area_interes',\n  'descripcion_problema',\n  'objetivo_proyecto',\n];\n\n// Todos los campos esperados del formulario\nconst campos = [\n  'nombre_estudiante','correo','carnet','carrera','sede','area_interes',\n  'linea_investigacion','tipo_problema','descripcion_problema','contexto',\n  'poblacion_beneficiada','objetivo_proyecto','recursos_disponibles',\n  'alcance_estimado','observaciones',\n];\n\nfor (const item of items) {\n  const b = (item.json && (item.json.body || item.json)) || {};\n  const errores = [];\n\n  for (const campo of obligatorios) {\n    if (b[campo] === undefined || b[campo] === null || String(b[campo]).trim() === '') {\n      errores.push(campo);\n    }\n  }\n\n  // Validación de formato de correo\n  const correo = b.correo ? String(b.correo).trim() : '';\n  if (correo && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(correo)) {\n    errores.push('correo (formato inválido)');\n  }\n\n  const datos = {\n    id_formulario: b.id_formulario !== undefined ? Number(b.id_formulario) : null,\n    id_estudiante: b.id_estudiante !== undefined ? Number(b.id_estudiante) : null,\n  };\n  for (const c of campos) {\n    datos[c] = b[c] !== undefined && b[c] !== null ? String(b[c]).trim() : '';\n  }\n\n  const requestId = 'REQ-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();\n\n  salida.push({\n    json: {\n      valido: errores.length === 0,\n      errores,\n      request_id: requestId,\n      fecha_procesamiento: new Date().toISOString(),\n      datos,\n    },\n  });\n}\n\nreturn salida;\n"
+      },
+      "id": "e3a97bf0-f8b4-44b4-b8f2-d05da3fdf0c0",
+      "name": "Validar Campos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1712,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-valido",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1e340429-9b22-49f0-904f-c3b41a01192f",
+      "name": "¿Datos Válidos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -1488,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst salida = [];\n\nfor (const item of $input.all()) {\n  const j = item.json;\n  const d = j.datos || {};\n\n  const prompt = [\n    'Eres un asesor metodológico universitario experto en la elaboración de anteproyectos de tesis',\n    'para la carrera de Ingeniería en Sistemas de la Universidad Mariano Gálvez de Guatemala.',\n    'Con base ÚNICAMENTE en los datos proporcionados por el estudiante, redacta una propuesta',\n    'preliminar de tesis usando lenguaje académico formal, claro, coherente y pertinente al área',\n    'de Ingeniería en Sistemas. No inventes datos que el estudiante no haya proporcionado.',\n    '',\n    'DATOS DEL ESTUDIANTE:',\n    '- Nombre: ' + (d.nombre_estudiante || ''),\n    '- Carrera: ' + (d.carrera || ''),\n    '- Sede: ' + (d.sede || ''),\n    '- Área de interés: ' + (d.area_interes || ''),\n    '- Línea de investigación: ' + (d.linea_investigacion || ''),\n    '- Tipo de problema: ' + (d.tipo_problema || ''),\n    '- Descripción del problema: ' + (d.descripcion_problema || ''),\n    '- Contexto: ' + (d.contexto || ''),\n    '- Población beneficiada: ' + (d.poblacion_beneficiada || ''),\n    '- Objetivo del proyecto: ' + (d.objetivo_proyecto || ''),\n    '- Recursos disponibles: ' + (d.recursos_disponibles || ''),\n    '- Alcance estimado: ' + (d.alcance_estimado || ''),\n    '- Observaciones: ' + (d.observaciones || ''),\n    '',\n    'DEBES GENERAR:',\n    '1. propuestas_tema: exactamente 3 propuestas de tema de tesis (títulos formales).',\n    '2. planteamiento_problema: 1 planteamiento del problema (párrafo académico).',\n    '3. objetivo_general: 1 objetivo general (inicia con verbo en infinitivo).',\n    '4. objetivos_especificos: exactamente 3 objetivos específicos (cada uno inicia con verbo en infinitivo).',\n    '5. justificacion: 1 justificación preliminar (párrafo académico).',\n    '',\n    'Devuelve EXCLUSIVAMENTE un JSON válido con esta estructura exacta:',\n    '{',\n    '  \"propuestas_tema\": [\"...\", \"...\", \"...\"],',\n    '  \"planteamiento_problema\": \"...\",',\n    '  \"objetivo_general\": \"...\",',\n    '  \"objetivos_especificos\": [\"...\", \"...\", \"...\"],',\n    '  \"justificacion\": \"...\"',\n    '}',\n  ].join('\\n');\n\n  salida.push({\n    json: {\n      request_id: j.request_id,\n      fecha_procesamiento: j.fecha_procesamiento,\n      datos: d,\n      prompt,\n    },\n  });\n}\n\nreturn salida;\n"
+      },
+      "id": "1dcaa9f7-f6d7-4aa9-acf5-9967ce3d9bc5",
+      "name": "Construir Prompt IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1264,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Actúa como asesor metodológico universitario. Responde siempre en español académico formal y devuelve únicamente un objeto JSON válido, sin texto adicional ni bloques de código."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "4e1948df-6ff1-4687-9a59-30abd04f9abd",
+      "name": "Generar Propuestas IA",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -1040,
+        192
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.6-flash",
+        "options": {
+          "maxOutputTokens": 4000,
+          "temperature": 0.4
+        }
+      },
+      "id": "2b6bb4a5-1e60-44cb-82f0-33d04b912e0c",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -960,
+        416
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "1j4eDXzVA6RWSmHY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const salida = [];\n\nfor (const item of $input.all()) {\n  const j = item.json || {};\n\n  let raw = '';\n\n  if (\n    j.output &&\n    j.output[0] &&\n    j.output[0].content &&\n    j.output[0].content[0] &&\n    j.output[0].content[0].text\n  ) {\n    raw = j.output[0].content[0].text;\n  } else if (j.message && j.message.content) {\n    raw = typeof j.message.content === 'string'\n      ? j.message.content\n      : JSON.stringify(j.message.content);\n  } else if (typeof j.content === 'string') {\n    raw = j.content;\n  } else if (j.content) {\n    raw = JSON.stringify(j.content);\n  } else if (typeof j.text === 'string') {\n    raw = j.text;\n  } else if (typeof j.output_text === 'string') {\n    raw = j.output_text;\n  } else if (j.output_text) {\n    raw = JSON.stringify(j.output_text);\n  } else {\n    raw = JSON.stringify(j);\n  }\n\n  if (typeof raw !== 'string') {\n    raw = JSON.stringify(raw);\n  }\n\n  let parsed = {};\n  try {\n    parsed = JSON.parse(raw);\n  } catch (e) {\n    const m = typeof raw === 'string' ? raw.match(/\\{[\\s\\S]*\\}/) : null;\n    if (m) {\n      try {\n        parsed = JSON.parse(m[0]);\n      } catch (e2) {\n        parsed = {};\n      }\n    }\n  }\n\n  const toArray = (v) => Array.isArray(v) ? v : (v ? [String(v)] : []);\n  const toStr = (v) => (v === undefined || v === null) ? '' : String(v);\n\n  const ctx = $('Construir Prompt IA').item.json;\n\n  salida.push({\n    json: {\n      request_id: ctx.request_id,\n      fecha_procesamiento: ctx.fecha_procesamiento,\n      datos: ctx.datos,\n      propuestas_tema: toArray(parsed.propuestas_tema),\n      planteamiento_problema: toStr(parsed.planteamiento_problema),\n      objetivo_general: toStr(parsed.objetivo_general),\n      objetivos_especificos: toArray(parsed.objetivos_especificos),\n      justificacion: toStr(parsed.justificacion),\n      estado: 'procesado',\n    },\n  });\n}\n\nreturn salida;"
+      },
+      "id": "051806c3-e9ea-4e86-95b2-6fa126893795",
+      "name": "Procesar Respuesta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst salida = [];\n\nfor (const item of $input.all()) {\n  const p = $('Procesar Respuesta IA').item.json;\n\n  const log = {\n    request_id: p.request_id,\n    estado_flujo: 'exitoso',\n    fecha_hora_ejecucion: new Date().toISOString(),\n    workflow: $workflow.name,\n    execution_id: $execution.id,\n  };\n  console.log('LOG_FLUJO', JSON.stringify(log));\n\n  salida.push({ json: { ...p, log } });\n}\n\nreturn salida;\n"
+      },
+      "id": "d7610cdd-89e6-4052-9293-95f7183a5538",
+      "name": "Registrar Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Propuestas generadas correctamente.\",\n  \"id_formulario\": {{ $('Procesar Respuesta IA').item.json.datos.id_formulario }},\n  \"propuestas_tema\": {{ JSON.stringify($('Procesar Respuesta IA').item.json.propuestas_tema) }},\n  \"planteamiento_problema\": {{ JSON.stringify($('Procesar Respuesta IA').item.json.planteamiento_problema) }},\n  \"objetivo_general\": {{ JSON.stringify($('Procesar Respuesta IA').item.json.objetivo_general) }},\n  \"objetivos_especificos\": {{ JSON.stringify($('Procesar Respuesta IA').item.json.objetivos_especificos) }},\n  \"justificacion\": {{ JSON.stringify($('Procesar Respuesta IA').item.json.justificacion) }}\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "d8c95474-9d5b-4abf-ba92-f44a3b92b30d",
+      "name": "Responder Éxito",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -16,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"error\", tipo_error: \"ia\", mensaje: \"No fue posible generar las propuestas con el servicio de inteligencia artificial. Intente nuevamente más tarde.\", request_id: $('Construir Prompt IA').item.json.request_id, fecha_procesamiento: $now.toISO() }) }}",
+        "options": {
+          "responseCode": 502
+        }
+      },
+      "id": "2a91ea2a-2d18-4d8a-ae4b-3ba99af8496b",
+      "name": "Responder Error IA",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -688,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst salida = [];\n\nfor (const item of $input.all()) {\n  // Recuperar los datos procesados (el item de error de MySQL puede no traerlos)\n  const p = $('Procesar Respuesta IA').item.json;\n\n  const registroTemporal = {\n    request_id: p.request_id,\n    fecha_creacion: p.fecha_procesamiento,\n    estado: 'pendiente_persistencia',\n    datos: p.datos,\n    propuestas: {\n      propuestas_tema: p.propuestas_tema,\n      planteamiento_problema: p.planteamiento_problema,\n      objetivo_general: p.objetivo_general,\n      objetivos_especificos: p.objetivos_especificos,\n      justificacion: p.justificacion,\n    },\n  };\n\n  // Log de trazabilidad del almacenamiento temporal\n  console.log('ALMACENAMIENTO_TEMPORAL', JSON.stringify(registroTemporal));\n\n  salida.push({ json: registroTemporal });\n}\n\nreturn salida;\n"
+      },
+      "id": "0b8256ac-6b82-4b48-9d68-b6ac02862ee2",
+      "name": "Almacenamiento Temporal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"success_partial\", mensaje: \"Las propuestas se generaron correctamente, pero no se pudieron guardar en la base de datos. Se almacenaron temporalmente.\", request_id: $json.request_id, datos_estudiante: $json.datos, propuestas_generadas: $json.propuestas, fecha_procesamiento: $json.fecha_creacion }) }}",
+        "options": {
+          "responseCode": 207
+        }
+      },
+      "id": "0b59a533-02a9-4e09-9800-c169461eeb61",
+      "name": "Responder (Almacenamiento Temporal)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -16,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"error\", tipo_error: \"validacion\", mensaje: \"Faltan campos obligatorios o contienen datos inválidos.\", campos_faltantes: $json.errores, request_id: $json.request_id, fecha_procesamiento: $json.fecha_procesamiento }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "c0df253f-e7be-4b2a-b12b-08377bb111d6",
+      "name": "Responder Error Validación",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1264,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "propuestas_generadas",
+          "mode": "name"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "id_formulario",
+              "value": "={{ $json.datos.id_formulario }}"
+            },
+            {
+              "column": "propuesta_tema_1",
+              "value": "={{ $json.propuestas_tema[0] }}"
+            },
+            {
+              "column": "propuesta_tema_2",
+              "value": "={{ $json.propuestas_tema[1] }}"
+            },
+            {
+              "column": "planteamiento_problema",
+              "value": "={{ $json.planteamiento_problema }}"
+            },
+            {
+              "column": "objetivo_general",
+              "value": "={{ $json.objetivo_general }}"
+            },
+            {
+              "column": "objetivos_especificos",
+              "value": "={{ JSON.stringify($json.objetivos_especificos) }}"
+            },
+            {
+              "column": "justificacion",
+              "value": "={{ $json.justificacion }}"
+            },
+            {
+              "column": "modelo_ia",
+              "value": "gemini-3.6-flash"
+            },
+            {
+              "column": "version",
+              "value": "1"
+            },
+            {
+              "column": "estado",
+              "value": "generada"
+            },
+            {
+              "column": "propuesta_tema_3",
+              "value": "={{ $json.propuestas_tema[2] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ba77e9b7-6bd9-48a5-8a05-f09529e5b90f",
+      "name": "Guardar Propuesta (MySQL)",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -464,
+        96
+      ],
+      "credentials": {
+        "mySql": {
+          "id": "fFqHHmn7ilpEP3Je",
+          "name": "MySQL account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "historial_flujos",
+          "mode": "list",
+          "cachedResultName": "historial_flujos"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "id_formulario",
+              "value": "={{ $('Procesar Respuesta IA').item.json.datos.id_formulario }}"
+            },
+            {
+              "column": "id_propuesta",
+              "value": "={{ $node[\"Guardar Propuesta (MySQL)\"].json.insertId }}"
+            },
+            {
+              "column": "identificador_solicitud",
+              "value": "={{ $('Procesar Respuesta IA').item.json.request_id }}"
+            },
+            {
+              "column": "nombre_flujo",
+              "value": "Generación de Propuesta con IA "
+            },
+            {
+              "column": "estado_flujo",
+              "value": "exitoso "
+            },
+            {
+              "column": "mensaje",
+              "value": "Propuesta generada y almacenada correctamente"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.5,
+      "position": [
+        -304,
+        -96
+      ],
+      "id": "42585b92-5ccf-448d-8a06-099da3168229",
+      "name": "Guardar Historial (MySQL)",
+      "credentials": {
+        "mySql": {
+          "id": "fFqHHmn7ilpEP3Je",
+          "name": "MySQL account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recibir Solicitud de Tesis": {
+      "main": [
+        [
+          {
+            "node": "Validar Campos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Campos": {
+      "main": [
+        [
+          {
+            "node": "¿Datos Válidos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Datos Válidos?": {
+      "main": [
+        [
+          {
+            "node": "Construir Prompt IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error Validación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir Prompt IA": {
+      "main": [
+        [
+          {
+            "node": "Generar Propuestas IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Propuestas IA": {
+      "main": [
+        [
+          {
+            "node": "Procesar Respuesta IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generar Propuestas IA",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Respuesta IA": {
+      "main": [
+        [
+          {
+            "node": "Guardar Propuesta (MySQL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Log": {
+      "main": [
+        [
+          {
+            "node": "Responder Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Almacenamiento Temporal": {
+      "main": [
+        [
+          {
+            "node": "Responder (Almacenamiento Temporal)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Propuesta (MySQL)": {
+      "main": [
+        [
+          {
+            "node": "Guardar Historial (MySQL)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Almacenamiento Temporal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Historial (MySQL)": {
+      "main": [
+        [
+          {
+            "node": "Registrar Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0967071c-30de-493b-80f9-e06a833f80d0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bc624cff369d53af979a3c67827ca1f5193192649ef2b30b01fc74022215479b"
+  },
+  "nodeGroups": [],
+  "id": "IqIqxjoEaOOmivzl",
+  "tags": []
+}
