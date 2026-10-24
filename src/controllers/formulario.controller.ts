@@ -15,6 +15,11 @@ function exigirIdEstudiante(req: Request): number {
 }
 
 export const listar = asyncHandler(async (req: Request, res: Response) => {
+  // El coordinador, el asesor y el administrador ven los formularios de todos.
+  if (req.usuario && ["coordinador", "asesor", "administrador"].includes(req.usuario.rol)) {
+    const formularios = await formularioService.listarTodosLosFormularios();
+    return res.json({ exito: true, formularios });
+  }
   const idEstudiante = exigirIdEstudiante(req);
   const formularios = await formularioService.listarFormularios(idEstudiante);
   res.json({ exito: true, formularios });

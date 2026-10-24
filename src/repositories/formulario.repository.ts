@@ -132,3 +132,15 @@ export async function contarFormulariosPorEstudiante(idEstudiante: number): Prom
   );
   return Number((filas[0] as { total: number }).total);
 }
+
+// ---- Vista del personal academico: todos los formularios con datos del estudiante ----
+export async function listarTodosLosFormularios(): Promise<FormularioTesis[]> {
+  const campos = CAMPOS.split(", ").map((c) => `f.${c}`).join(", ");
+  const [filas] = await pool.query<RowDataPacket[]>(
+    `SELECT ${campos}, e.nombre_completo AS nombre_estudiante, e.carrera, e.carnet
+     FROM formularios_tesis f
+     JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+     ORDER BY f.fecha_creacion DESC`
+  );
+  return filas as FormularioTesis[];
+}

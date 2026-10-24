@@ -106,3 +106,8 @@ export async function generarPropuesta(
     );
   }
 }
+
+// Vista del personal academico (coordinador, asesor, administrador).
+export function listarTodosLosFormularios() {
+  return formularioRepo.listarTodosLosFormularios();
+}

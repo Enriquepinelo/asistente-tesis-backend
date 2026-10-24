@@ -1,6 +1,6 @@
 import { AppError } from "../utils/AppError";
 import * as propuestaRepo from "../repositories/propuesta.repository";
-import { PropuestaGenerada } from "../types/models";
+import { PropuestaGenerada, EstadoPropuesta } from "../types/models";
 
 export async function listarPropuestas(idEstudiante: number): Promise<PropuestaGenerada[]> {
   return propuestaRepo.listarPropuestasPorEstudiante(idEstudiante);
@@ -45,4 +45,20 @@ export function generarTextoDescargable(propuesta: PropuestaGenerada): string {
   ]
     .filter((linea) => linea !== null)
     .join("\n");
+}
+
+// ---- Personal academico ----
+export function listarTodas(): Promise<PropuestaGenerada[]> {
+  return propuestaRepo.listarTodasLasPropuestas();
+}
+
+export async function obtenerPropuestaParaPersonal(idPropuesta: number): Promise<PropuestaGenerada> {
+  const propuesta = await propuestaRepo.buscarPropuestaPorId(idPropuesta);
+  if (!propuesta) throw new AppError("La propuesta solicitada no existe.", 404);
+  return propuesta;
+}
+
+export async function cambiarEstado(idPropuesta: number, estado: EstadoPropuesta): Promise<void> {
+  const ok = await propuestaRepo.actualizarEstadoPropuesta(idPropuesta, estado);
+  if (!ok) throw new AppError("La propuesta solicitada no existe.", 404);
 }

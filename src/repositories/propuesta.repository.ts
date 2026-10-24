@@ -1,6 +1,6 @@
-import { RowDataPacket } from "mysql2";
+import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { pool } from "../config/db";
-import { PropuestaGenerada } from "../types/models";
+import { PropuestaGenerada, EstadoPropuesta } from "../types/models";
 
 const CAMPOS = [
   "p.id_propuesta",
@@ -53,4 +53,37 @@ export async function contarPropuestasPorEstudiante(idEstudiante: number): Promi
     [idEstudiante]
   );
   return Number((filas[0] as { total: number }).total);
+}
+
+// ---- Vista del personal academico (asesor, coordinador, administrador) ----
+// Incluye el nombre del estudiante para que el asesor sepa de quien es cada propuesta.
+const CAMPOS_PERSONAL = `${CAMPOS}, e.nombre_completo AS nombre_estudiante, e.carnet, f.area_interes`;
+
+export async function listarTodasLasPropuestas(): Promise<PropuestaGenerada[]> {
+  const [filas] = await pool.query<RowDataPacket[]>(
+    `SELECT ${CAMPOS_PERSONAL} FROM propuestas_generadas p
+     JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
+     JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+     ORDER BY p.fecha_generacion DESC`
+  );
+  return filas as PropuestaGenerada[];
+}
+
+export async function buscarPropuestaPorId(idPropuesta: number): Promise<PropuestaGenerada | null> {
+  const [filas] = await pool.query<RowDataPacket[]>(
+    `SELECT ${CAMPOS_PERSONAL} FROM propuestas_generadas p
+     JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
+     JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+     WHERE p.id_propuesta = ? LIMIT 1`,
+    [idPropuesta]
+  );
+  return (filas[0] as PropuestaGenerada) ?? null;
+}
+
+export async function actualizarEstadoPropuesta(idPropuesta: number, estado: EstadoPropuesta): Promise<boolean> {
+  const [resultado] = await pool.query<ResultSetHeader>(
+    "UPDATE propuestas_generadas SET estado = ? WHERE id_propuesta = ?",
+    [estado, idPropuesta]
+  );
+  return resultado.affectedRows > 0;
 }
