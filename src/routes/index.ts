@@ -5,6 +5,7 @@ import formularioRoutes from "./formulario.routes";
 import propuestaRoutes from "./propuesta.routes";
 import historialRoutes from "./historial.routes";
 import recomendacionRoutes from "./recomendacion.routes";
+import usuarioRoutes from "./usuario.routes";
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use("/formularios", formularioRoutes);
 router.use("/propuestas", propuestaRoutes);
 router.use("/historial", historialRoutes);
 router.use("/recomendaciones", recomendacionRoutes);
+router.use("/usuarios", usuarioRoutes);
 
 export default router;
