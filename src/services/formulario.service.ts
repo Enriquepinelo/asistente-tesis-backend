@@ -84,8 +84,11 @@ export async function generarPropuesta(
   const inicio = Date.now();
   try {
     const resultado = await solicitarGeneracionDePropuestas(formulario, estudiante);
-    // n8n ya actualiza formularios_tesis.estado y registra su propio historial
-    // (pasos definidos en el workflow de la Fase 4). Aqui solo se retorna la respuesta.
+    // n8n guarda la propuesta y su historial, pero no cambia el estado del
+    // formulario: se marca aqui como "procesado" cuando la generacion termina bien.
+    if (resultado?.success !== false) {
+      await formularioRepo.actualizarEstadoFormulario(idFinal, "procesado");
+    }
     return resultado;
   } catch (error) {
     // Si el webhook no responde, dejamos constancia en el historial y marcamos

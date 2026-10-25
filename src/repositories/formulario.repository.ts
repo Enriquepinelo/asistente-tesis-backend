@@ -135,7 +135,15 @@ export async function contarFormulariosPorEstudiante(idEstudiante: number): Prom
 
 // ---- Vista del personal academico: todos los formularios con datos del estudiante ----
 export async function listarTodosLosFormularios(): Promise<FormularioTesis[]> {
-  const campos = CAMPOS.split(", ").map((c) => `f.${c}`).join(", ");
+  // Si el formulario ya tiene una propuesta guardada se muestra como "procesado",
+  // aunque su estado haya quedado en borrador (registros anteriores a esta correccion).
+  const campos = CAMPOS.split(", ")
+    .map((c) =>
+      c === "estado"
+        ? "CASE WHEN EXISTS (SELECT 1 FROM propuestas_generadas p WHERE p.id_formulario = f.id_formulario) THEN 'procesado' ELSE f.estado END AS estado"
+        : `f.${c}`
+    )
+    .join(", ");
   const [filas] = await pool.query<RowDataPacket[]>(
     `SELECT ${campos}, e.nombre_completo AS nombre_estudiante, e.carrera, e.carnet
      FROM formularios_tesis f
