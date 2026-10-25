@@ -16,5 +16,7 @@ const MAPA_PRIORIDAD: Record<string, Prioridad> = {
 };
 
 export function calcularPrioridad(tipoRecomendacion: string): Prioridad {
+  // Las observaciones que escribe el asesor al revisar siempre son prioritarias.
+  if (tipoRecomendacion.startsWith("Revisión del asesor")) return "alta";
   return MAPA_PRIORIDAD[tipoRecomendacion] ?? "baja";
 }

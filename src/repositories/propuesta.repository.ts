@@ -87,3 +87,48 @@ export async function actualizarEstadoPropuesta(idPropuesta: number, estado: Est
   );
   return resultado.affectedRows > 0;
 }
+
+// Cambia el estado y, si el asesor escribio una observacion, la guarda en
+// recomendaciones_apoyo (fuente "asesor") para que el estudiante la vea.
+// Se hace en una transaccion: o se guardan ambas cosas o ninguna.
+export async function revisarPropuesta(
+  idPropuesta: number,
+  estado: EstadoPropuesta,
+  comentario: string | null
+): Promise<boolean> {
+  const conexion = await pool.getConnection();
+  try {
+    await conexion.beginTransaction();
+    const [filas] = await conexion.query<RowDataPacket[]>(
+      "SELECT id_formulario FROM propuestas_generadas WHERE id_propuesta = ? LIMIT 1",
+      [idPropuesta]
+    );
+    if (filas.length === 0) {
+      await conexion.rollback();
+      return false;
+    }
+    await conexion.query("UPDATE propuestas_generadas SET estado = ? WHERE id_propuesta = ?", [estado, idPropuesta]);
+    if (comentario) {
+      await conexion.query(
+        "INSERT INTO recomendaciones_apoyo (id_formulario, tipo_recomendacion, contenido, fuente) VALUES (?, ?, ?, 'asesor')",
+        [filas[0].id_formulario, `Revisión del asesor: ${estado}`, comentario]
+      );
+    }
+    await conexion.commit();
+    return true;
+  } catch (error) {
+    await conexion.rollback();
+    throw error;
+  } finally {
+    conexion.release();
+  }
+}
+
+// Observaciones del asesor sobre los formularios de las propuestas (vista del personal).
+export async function listarObservacionesAsesor(): Promise<RowDataPacket[]> {
+  const [filas] = await pool.query<RowDataPacket[]>(
+    `SELECT id_recomendacion, id_formulario, tipo_recomendacion, contenido, fecha_creacion
+     FROM recomendaciones_apoyo WHERE fuente = 'asesor' ORDER BY fecha_creacion DESC`
+  );
+  return filas;
+}

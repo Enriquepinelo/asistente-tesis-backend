@@ -48,8 +48,16 @@ export function generarTextoDescargable(propuesta: PropuestaGenerada): string {
 }
 
 // ---- Personal academico ----
-export function listarTodas(): Promise<PropuestaGenerada[]> {
-  return propuestaRepo.listarTodasLasPropuestas();
+// Cada propuesta llega con las observaciones que el asesor ya escribio.
+export async function listarTodas() {
+  const [propuestas, observaciones] = await Promise.all([
+    propuestaRepo.listarTodasLasPropuestas(),
+    propuestaRepo.listarObservacionesAsesor(),
+  ]);
+  return propuestas.map((p) => ({
+    ...p,
+    observaciones: observaciones.filter((o) => o.id_formulario === p.id_formulario),
+  }));
 }
 
 export async function obtenerPropuestaParaPersonal(idPropuesta: number): Promise<PropuestaGenerada> {
@@ -58,7 +66,14 @@ export async function obtenerPropuestaParaPersonal(idPropuesta: number): Promise
   return propuesta;
 }
 
-export async function cambiarEstado(idPropuesta: number, estado: EstadoPropuesta): Promise<void> {
-  const ok = await propuestaRepo.actualizarEstadoPropuesta(idPropuesta, estado);
+export async function cambiarEstado(
+  idPropuesta: number,
+  estado: EstadoPropuesta,
+  comentario: string | null
+): Promise<void> {
+  if (estado === "ajustada" && !comentario) {
+    throw new AppError("Escriba qué debe ajustar el estudiante.", 400);
+  }
+  const ok = await propuestaRepo.revisarPropuesta(idPropuesta, estado, comentario);
   if (!ok) throw new AppError("La propuesta solicitada no existe.", 404);
 }

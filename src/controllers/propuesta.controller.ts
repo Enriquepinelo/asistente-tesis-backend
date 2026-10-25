@@ -64,6 +64,10 @@ export const cambiarEstado = asyncHandler(async (req: Request, res: Response) =>
   if (!ESTADOS_VALIDOS.includes(estado)) {
     throw new AppError("El estado debe ser generada, revisada, ajustada o aprobada.", 400);
   }
-  await propuestaService.cambiarEstado(leerId(req), estado);
+  const comentarioBruto = typeof req.body?.comentario === "string" ? req.body.comentario.trim() : "";
+  if (comentarioBruto.length > 2000) {
+    throw new AppError("La observación no puede pasar de 2000 caracteres.", 400);
+  }
+  await propuestaService.cambiarEstado(leerId(req), estado, comentarioBruto || null);
   res.json({ exito: true, mensaje: "Estado de la propuesta actualizado." });
 });
