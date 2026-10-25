@@ -22,10 +22,10 @@ const CAMPOS = [
 // (join contra formularios_tesis para aislar datos por usuario).
 export async function listarPropuestasPorEstudiante(idEstudiante: number): Promise<PropuestaGenerada[]> {
   const [filas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${CAMPOS} FROM propuestas_generadas p
+    `SELECT ${CAMPOS}, f.area_interes, f.objetivo_proyecto FROM propuestas_generadas p
      JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
      WHERE f.id_estudiante = ?
-     ORDER BY p.fecha_generacion DESC`,
+     ORDER BY p.fecha_generacion DESC, p.id_propuesta DESC`,
     [idEstudiante]
   );
   return filas as PropuestaGenerada[];
