@@ -6,6 +6,9 @@ import { manejadorDeErrores, rutaNoEncontrada } from "./middleware/errorHandler"
 
 const app = express();
 
+// Render pone un proxy delante: esto permite leer la IP real del visitante.
+app.set("trust proxy", 1);
+
 // CORS: solo se permite el origen del frontend en desarrollo.
 app.use(
   cors({
