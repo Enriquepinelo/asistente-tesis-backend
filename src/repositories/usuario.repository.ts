@@ -113,3 +113,35 @@ export async function existeNombreUsuario(nombre: string): Promise<boolean> {
   );
   return filas.length > 0;
 }
+
+export async function cambiarRolUsuario(idUsuario: number, rol: string): Promise<boolean> {
+  const [r] = await pool.query<ResultSetHeader>("UPDATE usuarios_sistema SET rol = ? WHERE id_usuario = ?", [rol, idUsuario]);
+  return r.affectedRows > 0;
+}
+
+export async function cambiarContrasena(idUsuario: number, hash: string): Promise<boolean> {
+  const [r] = await pool.query<ResultSetHeader>("UPDATE usuarios_sistema SET contrasena_hash = ? WHERE id_usuario = ?", [hash, idUsuario]);
+  return r.affectedRows > 0;
+}
+
+// Actividad reciente del sistema: ejecuciones del flujo de IA y observaciones de asesores.
+export async function actividadReciente(limite = 8): Promise<RowDataPacket[]> {
+  const [filas] = await pool.query<RowDataPacket[]>(
+    `(SELECT h.fecha_ejecucion AS fecha, 'flujo' AS tipo, h.estado_flujo AS estado, h.nombre_flujo AS detalle,
+             e.nombre_completo AS estudiante
+        FROM historial_flujos h
+        LEFT JOIN formularios_tesis f ON f.id_formulario = h.id_formulario
+        LEFT JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+       WHERE h.nombre_flujo <> 'Guardar borrador de formulario')
+     UNION ALL
+     (SELECT r.fecha_creacion AS fecha, 'observacion' AS tipo, r.tipo_recomendacion AS estado, r.contenido AS detalle,
+             e.nombre_completo AS estudiante
+        FROM recomendaciones_apoyo r
+        JOIN formularios_tesis f ON f.id_formulario = r.id_formulario
+        JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+       WHERE r.fuente = 'asesor')
+     ORDER BY fecha DESC LIMIT ?`,
+    [limite]
+  );
+  return filas;
+}

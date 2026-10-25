@@ -28,3 +28,23 @@ export const cambiarEstado = asyncHandler(async (req: Request, res: Response) =>
   await usuarioService.cambiarEstado(id, resultado.data.estado, req.usuario!.id_usuario);
   res.json({ exito: true, mensaje: "Estado actualizado." });
 });
+
+function leerId(req: Request): number {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) throw new AppError("Identificador de usuario inválido.", 400);
+  return id;
+}
+
+export const cambiarRol = asyncHandler(async (req: Request, res: Response) => {
+  await usuarioService.cambiarRol(leerId(req), String(req.body?.rol ?? ""), req.usuario!.id_usuario);
+  res.json({ exito: true, mensaje: "Rol actualizado." });
+});
+
+export const restablecerContrasena = asyncHandler(async (req: Request, res: Response) => {
+  const temporal = await usuarioService.restablecerContrasena(leerId(req));
+  res.json({ exito: true, contrasena_temporal: temporal });
+});
+
+export const estadoSistema = asyncHandler(async (_req: Request, res: Response) => {
+  res.json({ exito: true, ...(await usuarioService.estadoSistema()) });
+});
