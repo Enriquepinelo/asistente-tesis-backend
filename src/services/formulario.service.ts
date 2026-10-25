@@ -88,6 +88,8 @@ export async function generarPropuesta(
     // formulario: se marca aqui como "procesado" cuando la generacion termina bien.
     if (resultado?.success !== false) {
       await formularioRepo.actualizarEstadoFormulario(idFinal, "procesado");
+      // Se guarda cuanto tardo la generacion, para el indicador del coordinador.
+      await historialRepo.completarTiempoRespuesta(idFinal, Date.now() - inicio).catch(() => undefined);
     }
     return resultado;
   } catch (error) {

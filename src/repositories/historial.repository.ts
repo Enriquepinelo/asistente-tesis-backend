@@ -77,3 +77,14 @@ export async function registrarEventoHistorial(datos: {
   );
   return resultado.insertId;
 }
+
+// n8n registra la ejecucion exitosa sin tiempo de respuesta; el backend lo mide
+// y lo completa en el registro mas reciente de ese formulario.
+export async function completarTiempoRespuesta(idFormulario: number, tiempoMs: number): Promise<void> {
+  await pool.query(
+    `UPDATE historial_flujos SET tiempo_respuesta_ms = ?
+     WHERE id_formulario = ? AND estado_flujo = 'exitoso' AND tiempo_respuesta_ms IS NULL
+     ORDER BY id_historial DESC LIMIT 1`,
+    [tiempoMs, idFormulario]
+  );
+}
