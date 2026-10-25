@@ -51,3 +51,18 @@ export async function estudianteDePropuesta(idPropuesta: number): Promise<number
   );
   return filas[0] ? Number(filas[0].id_estudiante) : null;
 }
+
+// Todos los documentos de las propuestas de un estudiante (sin el contenido).
+export async function listarPorEstudiante(idEstudiante: number) {
+  const [filas] = await pool.query<RowDataPacket[]>(
+    `SELECT d.id_documento, d.id_propuesta, d.nombre_archivo, d.tipo_mime, d.tamano_bytes, d.fecha_subida,
+            u.nombre_usuario AS subido_por
+     FROM documentos_revision d
+     JOIN propuestas_generadas p ON p.id_propuesta = d.id_propuesta
+     JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
+     LEFT JOIN usuarios_sistema u ON u.id_usuario = d.subido_por
+     WHERE f.id_estudiante = ? ORDER BY d.fecha_subida DESC`,
+    [idEstudiante]
+  );
+  return filas;
+}

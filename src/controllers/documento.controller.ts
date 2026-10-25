@@ -84,3 +84,13 @@ export const descargar = asyncHandler(async (req: Request, res: Response) => {
   res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(doc.nombre_archivo)}`);
   res.send(doc.contenido);
 });
+
+export const misDocumentos = asyncHandler(async (req: Request, res: Response) => {
+  const idEstudiante = req.usuario?.id_estudiante;
+  if (!idEstudiante) throw new AppError("Esta acción solo está disponible para estudiantes.", 403);
+  try {
+    res.json({ exito: true, documentos: await repo.listarPorEstudiante(idEstudiante) });
+  } catch (error) {
+    tablaFaltante(error);
+  }
+});

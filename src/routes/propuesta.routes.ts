@@ -8,6 +8,7 @@ const router = Router();
 router.use(requiereAutenticacion);
 router.get("/", propuestaController.listar);
 // Documentos de revision: el asesor y el coordinador suben; el estudiante dueno y el personal descargan.
+router.get("/mis-documentos", documentoController.misDocumentos);
 router.get("/documentos/:idDocumento/descargar", documentoController.descargar);
 router.get("/:id/documentos", documentoController.listar);
 router.post("/:id/documentos", permitirRoles("asesor", "coordinador"), documentoController.subir);
