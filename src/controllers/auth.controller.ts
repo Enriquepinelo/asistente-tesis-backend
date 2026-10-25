@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { loginSchema } from "../validators/auth.validator";
 import { iniciarSesion } from "../services/auth.service";
+import { registrarEstudiante } from "../services/usuario.service";
+import { registroEstudianteSchema } from "../validators/usuario.validator";
 import { AppError } from "../utils/AppError";
 import { buscarUsuarioPorId } from "../repositories/usuario.repository";
 import { buscarEstudiantePorId } from "../repositories/estudiante.repository";
@@ -56,5 +58,17 @@ export const obtenerPerfil = asyncHandler(async (req: Request, res: Response) =>
       id_estudiante: req.usuario.id_estudiante,
       nombre_completo: nombreCompleto,
     },
+  });
+});
+
+export const registro = asyncHandler(async (req: Request, res: Response) => {
+  const resultado = registroEstudianteSchema.safeParse(req.body);
+  if (!resultado.success) {
+    throw new AppError(resultado.error.errors[0]?.message ?? "Datos inválidos.", 400);
+  }
+  await registrarEstudiante(resultado.data);
+  res.status(201).json({
+    exito: true,
+    mensaje: "Tu cuenta fue creada. Podrás ingresar cuando la coordinación la apruebe.",
   });
 });

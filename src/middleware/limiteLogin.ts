@@ -60,3 +60,16 @@ setInterval(() => {
     if (r.bloqueadoHasta < ahora && ahora - r.primerFallo > VENTANA_MS) registros.delete(k);
   }
 }, 10 * 60 * 1000).unref();
+
+// Registro publico: maximo 5 cuentas nuevas por IP cada hora, para evitar abuso.
+const registrosPorIp = new Map<string, number[]>();
+export function limitarRegistros(req: Request, res: Response, next: NextFunction) {
+  const ahora = Date.now();
+  const lista = (registrosPorIp.get(req.ip ?? "") ?? []).filter((t) => ahora - t < 60 * 60 * 1000);
+  if (lista.length >= 5) {
+    return res.status(429).json({ exito: false, mensaje: "Demasiados registros desde esta red. Intente más tarde." });
+  }
+  lista.push(ahora);
+  registrosPorIp.set(req.ip ?? "", lista);
+  next();
+}

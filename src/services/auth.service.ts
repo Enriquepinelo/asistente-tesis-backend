@@ -21,13 +21,18 @@ export async function iniciarSesion(correo: string, contrasena: string): Promise
   const usuario = await buscarUsuarioPorCorreo(correo);
 
   // Mensaje generico a proposito: no revelar si el correo existe o no.
-  if (!usuario || usuario.estado !== "activo") {
+  if (!usuario) {
     throw new AppError("Correo o contraseña incorrectos.", 401);
   }
 
   const contrasenaValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
   if (!contrasenaValida) {
     throw new AppError("Correo o contraseña incorrectos.", 401);
+  }
+
+  // Solo se informa el estado de la cuenta a quien ya demostro conocer la contrasena.
+  if (usuario.estado !== "activo") {
+    throw new AppError("Tu cuenta todavía no está activa. La coordinación debe aprobarla.", 403);
   }
 
   // Vinculo usuarios_sistema <-> estudiantes por correo (decision de Fase 1).

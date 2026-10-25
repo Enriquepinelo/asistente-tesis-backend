@@ -39,7 +39,7 @@ export async function listarUsuarios(): Promise<UsuarioListado[]> {
     "SELECT u.id_usuario, u.nombre_usuario, u.correo, u.rol, u.estado, u.fecha_creacion, " +
       "e.nombre_completo FROM usuarios_sistema u " +
       "LEFT JOIN estudiantes e ON e.correo = u.correo " +
-      "ORDER BY u.fecha_creacion DESC, u.id_usuario DESC"
+      "ORDER BY (u.estado = 'inactivo') DESC, u.fecha_creacion DESC, u.id_usuario DESC"
   );
   return filas as UsuarioListado[];
 }
@@ -66,7 +66,8 @@ export interface DatosEstudianteNuevo {
 // (vinculados por correo). Se hace en una transaccion: o se guardan ambos o ninguno.
 export async function crearUsuario(
   datos: { nombre_usuario: string; correo: string; contrasena_hash: string; rol: string },
-  estudiante: DatosEstudianteNuevo | null
+  estudiante: DatosEstudianteNuevo | null,
+  estado: "activo" | "inactivo" = "activo"
 ): Promise<number> {
   const conexion = await pool.getConnection();
   try {
@@ -84,8 +85,8 @@ export async function crearUsuario(
       }
     }
     const [resultado] = await conexion.query<ResultSetHeader>(
-      "INSERT INTO usuarios_sistema (nombre_usuario, correo, contrasena_hash, rol, estado) VALUES (?, ?, ?, ?, 'activo')",
-      [datos.nombre_usuario, datos.correo, datos.contrasena_hash, datos.rol]
+      "INSERT INTO usuarios_sistema (nombre_usuario, correo, contrasena_hash, rol, estado) VALUES (?, ?, ?, ?, ?)",
+      [datos.nombre_usuario, datos.correo, datos.contrasena_hash, datos.rol, estado]
     );
     await conexion.commit();
     return resultado.insertId;
@@ -103,4 +104,12 @@ export async function cambiarEstadoUsuario(idUsuario: number, estado: "activo" |
     [estado, idUsuario]
   );
   return resultado.affectedRows > 0;
+}
+
+export async function existeNombreUsuario(nombre: string): Promise<boolean> {
+  const [filas] = await pool.query<RowDataPacket[]>(
+    "SELECT 1 FROM usuarios_sistema WHERE nombre_usuario = ? LIMIT 1",
+    [nombre]
+  );
+  return filas.length > 0;
 }
