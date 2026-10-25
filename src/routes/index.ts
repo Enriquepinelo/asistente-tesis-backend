@@ -6,6 +6,7 @@ import propuestaRoutes from "./propuesta.routes";
 import historialRoutes from "./historial.routes";
 import recomendacionRoutes from "./recomendacion.routes";
 import usuarioRoutes from "./usuario.routes";
+import coordinacionRoutes from "./coordinacion.routes";
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use("/propuestas", propuestaRoutes);
 router.use("/historial", historialRoutes);
 router.use("/recomendaciones", recomendacionRoutes);
 router.use("/usuarios", usuarioRoutes);
+router.use("/coordinacion", coordinacionRoutes);
 
 export default router;
