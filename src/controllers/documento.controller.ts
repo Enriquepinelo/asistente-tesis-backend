@@ -2,13 +2,8 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../utils/asyncHandler";
 import { AppError } from "../utils/AppError";
 import * as repo from "../repositories/documento.repository";
+import { validarArchivo } from "../utils/validarArchivo";
 
-const TIPOS_PERMITIDOS: Record<string, string> = {
-  "application/pdf": "pdf",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-  "application/msword": "doc",
-};
-const MAX_BYTES = 5 * 1024 * 1024;
 const PERSONAL = ["asesor", "coordinador", "administrador"];
 
 function leerId(valor: string): number {
@@ -36,24 +31,20 @@ async function verificarAcceso(req: Request, idPropuesta: number) {
 
 export const subir = asyncHandler(async (req: Request, res: Response) => {
   const idPropuesta = leerId(req.params.id);
-  const { nombre, tipo, base64 } = req.body ?? {};
-  if (typeof nombre !== "string" || !nombre.trim()) throw new AppError("Falta el nombre del archivo.", 400);
-  if (!TIPOS_PERMITIDOS[tipo]) throw new AppError("Solo se permiten archivos PDF o Word.", 400);
-  if (typeof base64 !== "string" || !base64) throw new AppError("El archivo está vacío.", 400);
-  const contenido = Buffer.from(base64, "base64");
-  if (contenido.length === 0) throw new AppError("El archivo está vacío.", 400);
-  if (contenido.length > MAX_BYTES) throw new AppError("El archivo no puede pasar de 5 MB.", 400);
+  const { nombre, base64 } = req.body ?? {};
+  // Valida extensión, tamaño y que el contenido sea realmente del tipo indicado.
+  const archivo = validarArchivo(nombre, base64);
   if (!(await repo.estudianteDePropuesta(idPropuesta))) throw new AppError("La propuesta no existe.", 404);
 
   try {
     const id = await repo.crearDocumento({
       id_propuesta: idPropuesta,
-      nombre_archivo: nombre.trim().slice(0, 200),
-      tipo_mime: tipo,
-      contenido,
+      nombre_archivo: archivo.nombre,
+      tipo_mime: archivo.mime,
+      contenido: archivo.contenido,
       subido_por: req.usuario!.id_usuario,
     });
-    res.status(201).json({ exito: true, mensaje: "Documento subido.", id_documento: id });
+    res.status(201).json({ exito: true, mensaje: "Documento subido.", id_documento: id, tamano_bytes: archivo.contenido.length });
   } catch (error) {
     tablaFaltante(error);
   }
