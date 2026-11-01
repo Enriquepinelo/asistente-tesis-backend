@@ -9,6 +9,7 @@ router.use(requiereAutenticacion);
 router.get("/", propuestaController.listar);
 // Documentos de revision: el asesor, el coordinador y el estudiante dueno suben; todos ellos descargan.
 router.get("/mis-documentos", documentoController.misDocumentos);
+router.get("/documentos-estudiantes", permitirRoles("asesor", "coordinador"), documentoController.deEstudiantes);
 router.get("/documentos/:idDocumento/descargar", documentoController.descargar);
 router.get("/:id/documentos", documentoController.listar);
 router.post("/:id/documentos", permitirRoles("asesor", "coordinador", "estudiante"), documentoController.subir);

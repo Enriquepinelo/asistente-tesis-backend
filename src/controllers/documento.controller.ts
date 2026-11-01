@@ -90,3 +90,12 @@ export const misDocumentos = asyncHandler(async (req: Request, res: Response) =>
     tablaFaltante(error);
   }
 });
+
+// Para el asesor y el coordinador: archivos que han subido los estudiantes.
+export const deEstudiantes = asyncHandler(async (_req: Request, res: Response) => {
+  try {
+    res.json({ exito: true, documentos: await repo.listarDeEstudiantes() });
+  } catch (error) {
+    tablaFaltante(error);
+  }
+});

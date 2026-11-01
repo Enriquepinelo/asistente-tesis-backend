@@ -66,3 +66,19 @@ export async function listarPorEstudiante(idEstudiante: number) {
   );
   return filas;
 }
+
+// Archivos que subieron los estudiantes (para avisarle al asesor). Sin el contenido.
+export async function listarDeEstudiantes() {
+  const [filas] = await pool.query<RowDataPacket[]>(
+    `SELECT d.id_documento, d.id_propuesta, d.nombre_archivo, d.tamano_bytes, d.fecha_subida,
+            e.nombre_completo AS nombre_estudiante, p.propuesta_tema_1 AS tema
+     FROM documentos_revision d
+     JOIN usuarios_sistema u ON u.id_usuario = d.subido_por AND u.rol = 'estudiante'
+     JOIN propuestas_generadas p ON p.id_propuesta = d.id_propuesta
+     JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
+     LEFT JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+     ORDER BY d.id_documento DESC
+     LIMIT 100`
+  );
+  return filas;
+}
