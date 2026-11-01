@@ -1,4 +1,5 @@
 import { AppError } from "../utils/AppError";
+import * as envioRepo from "../repositories/envio.repository";
 import * as propuestaRepo from "../repositories/propuesta.repository";
 import { PropuestaGenerada, EstadoPropuesta } from "../types/models";
 
@@ -76,4 +77,24 @@ export async function cambiarEstado(
   }
   const ok = await propuestaRepo.revisarPropuesta(idPropuesta, estado, comentario);
   if (!ok) throw new AppError("La propuesta solicitada no existe.", 404);
+}
+
+// ---- Envío a revisión (lo decide el estudiante) ----
+const PREFIJO_DESARROLLO = "Desarrollar el anteproyecto del tema:";
+
+export async function enviarARevision(idFormulario: number, idEstudiante: number, mensaje: string | null) {
+  const propuesta = await envioRepo.buscarPorFormulario(idFormulario, idEstudiante);
+  if (!propuesta) throw new AppError("No se encontró tu propuesta.", 404);
+  if (!(propuesta.objetivo_proyecto ?? "").startsWith(PREFIJO_DESARROLLO)) {
+    throw new AppError("Primero elige uno de los temas y genera su desarrollo; eso es lo que se envía al asesor.", 400);
+  }
+  if (propuesta.id_envio && propuesta.estado !== "ajustada") {
+    throw new AppError("Esta propuesta ya fue enviada a tu asesor.", 409);
+  }
+  await envioRepo.registrarEnvio(propuesta.id_propuesta, mensaje, propuesta.veces ?? 0);
+  return { id_propuesta: propuesta.id_propuesta, reenvio: !!propuesta.id_envio };
+}
+
+export async function enviosRecientes() {
+  return envioRepo.listarRecientes();
 }

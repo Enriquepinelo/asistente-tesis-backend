@@ -1,6 +1,7 @@
 import { RowDataPacket, ResultSetHeader } from "mysql2";
 import { pool } from "../config/db";
 import { PropuestaGenerada, EstadoPropuesta } from "../types/models";
+import { asegurarTablaEnvios } from "./envio.repository";
 
 const CAMPOS = [
   "p.id_propuesta",
@@ -21,9 +22,12 @@ const CAMPOS = [
 // Solo devuelve propuestas cuyo formulario pertenece al estudiante indicado
 // (join contra formularios_tesis para aislar datos por usuario).
 export async function listarPropuestasPorEstudiante(idEstudiante: number): Promise<PropuestaGenerada[]> {
+  await asegurarTablaEnvios();
   const [filas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${CAMPOS}, f.area_interes, f.objetivo_proyecto FROM propuestas_generadas p
+    `SELECT ${CAMPOS}, f.area_interes, f.objetivo_proyecto, env.fecha_envio, env.mensaje AS mensaje_estudiante
+     FROM propuestas_generadas p
      JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
+     LEFT JOIN envios_revision env ON env.id_propuesta = p.id_propuesta
      WHERE f.id_estudiante = ?
      ORDER BY p.fecha_generacion DESC, p.id_propuesta DESC`,
     [idEstudiante]
@@ -59,12 +63,16 @@ export async function contarPropuestasPorEstudiante(idEstudiante: number): Promi
 // Incluye el nombre del estudiante para que el asesor sepa de quien es cada propuesta.
 const CAMPOS_PERSONAL = `${CAMPOS}, e.nombre_completo AS nombre_estudiante, e.carnet, f.area_interes`;
 
+// Solo las propuestas que el estudiante envió a revisión (las demás son sus borradores).
 export async function listarTodasLasPropuestas(): Promise<PropuestaGenerada[]> {
+  await asegurarTablaEnvios();
   const [filas] = await pool.query<RowDataPacket[]>(
-    `SELECT ${CAMPOS_PERSONAL} FROM propuestas_generadas p
+    `SELECT ${CAMPOS_PERSONAL}, env.fecha_envio, env.mensaje AS mensaje_estudiante, env.veces AS veces_enviada
+     FROM propuestas_generadas p
+     JOIN envios_revision env ON env.id_propuesta = p.id_propuesta
      JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
      JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
-     ORDER BY p.fecha_generacion DESC`
+     ORDER BY env.fecha_envio DESC`
   );
   return filas as PropuestaGenerada[];
 }

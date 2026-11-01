@@ -71,3 +71,19 @@ export const cambiarEstado = asyncHandler(async (req: Request, res: Response) =>
   await propuestaService.cambiarEstado(leerId(req), estado, comentarioBruto || null);
   res.json({ exito: true, mensaje: "Estado de la propuesta actualizado." });
 });
+
+// El estudiante decide qué propuesta le manda a su asesor, con un mensaje opcional.
+export const enviarARevision = asyncHandler(async (req: Request, res: Response) => {
+  const idEstudiante = exigirIdEstudiante(req);
+  const idFormulario = Number(req.body?.id_formulario);
+  if (!Number.isInteger(idFormulario) || idFormulario <= 0) throw new AppError("Formulario inválido.", 400);
+  const mensaje = typeof req.body?.mensaje === "string" ? req.body.mensaje.trim() : "";
+  if (mensaje.length > 1000) throw new AppError("El mensaje no puede pasar de 1000 caracteres.", 400);
+  const r = await propuestaService.enviarARevision(idFormulario, idEstudiante, mensaje || null);
+  res.json({ exito: true, mensaje: r.reenvio ? "Propuesta corregida enviada otra vez a tu asesor." : "Propuesta enviada a tu asesor.", ...r });
+});
+
+// Para avisarle al asesor de los envíos nuevos.
+export const enviosRecientes = asyncHandler(async (_req: Request, res: Response) => {
+  res.json({ exito: true, envios: await propuestaService.enviosRecientes() });
+});
