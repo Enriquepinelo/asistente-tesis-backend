@@ -17,8 +17,8 @@ app.use(
   })
 );
 
-// Limite de 8 MB para permitir subir documentos de revision (hasta 5 MB) en base64.
-app.use(express.json({ limit: "8mb" }));
+// Limite de 15 MB para permitir subir documentos de revision (hasta 10 MB) en base64.
+app.use(express.json({ limit: "15mb" }));
 
 // Ruta simple para confirmar que el servidor esta vivo.
 app.get("/api/salud", (_req, res) => {

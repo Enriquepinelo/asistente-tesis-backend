@@ -22,7 +22,7 @@ const TIPOS: Record<string, TipoArchivo> = {
 };
 
 export const EXTENSIONES_PERMITIDAS = Object.values(TIPOS).flatMap((t) => t.extensiones);
-export const MAX_BYTES = 5 * 1024 * 1024;
+export const MAX_BYTES = 10 * 1024 * 1024;
 
 const empiezaCon = (b: Buffer, firma: number[]) => firma.every((v, i) => b[i] === v);
 const contiene = (b: Buffer, texto: string) => b.includes(Buffer.from(texto, "latin1"));
@@ -74,7 +74,7 @@ export function validarArchivo(nombre: unknown, base64: unknown): ArchivoValidad
 
   const contenido = Buffer.from(base64, "base64");
   if (contenido.length === 0) throw new AppError("El archivo está vacío.", 400);
-  if (contenido.length > MAX_BYTES) throw new AppError("El archivo no puede pasar de 5 MB.", 400);
+  if (contenido.length > MAX_BYTES) throw new AppError("El archivo no puede pasar de 10 MB.", 400);
 
   const tipo = detectarTipo(contenido, extension);
   if (!tipo) {
