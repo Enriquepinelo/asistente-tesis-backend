@@ -34,7 +34,12 @@ export const subir = asyncHandler(async (req: Request, res: Response) => {
   const { nombre, base64 } = req.body ?? {};
   // Valida extensión, tamaño y que el contenido sea realmente del tipo indicado.
   const archivo = validarArchivo(nombre, base64);
-  if (!(await repo.estudianteDePropuesta(idPropuesta))) throw new AppError("La propuesta no existe.", 404);
+  const dueno = await repo.estudianteDePropuesta(idPropuesta);
+  if (!dueno) throw new AppError("La propuesta no existe.", 404);
+  // El estudiante solo puede subir archivos a sus propias propuestas.
+  if (req.usuario!.rol === "estudiante" && dueno !== req.usuario!.id_estudiante) {
+    throw new AppError("Solo puede subir archivos a sus propias propuestas.", 403);
+  }
 
   try {
     const id = await repo.crearDocumento({

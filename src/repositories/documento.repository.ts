@@ -22,7 +22,7 @@ export async function crearDocumento(d: {
 export async function listarPorPropuesta(idPropuesta: number) {
   const [filas] = await pool.query<RowDataPacket[]>(
     `SELECT d.id_documento, d.id_propuesta, d.nombre_archivo, d.tipo_mime, d.tamano_bytes, d.fecha_subida,
-            u.nombre_usuario AS subido_por
+            u.nombre_usuario AS subido_por, u.rol AS rol_subio
      FROM documentos_revision d LEFT JOIN usuarios_sistema u ON u.id_usuario = d.subido_por
      WHERE d.id_propuesta = ? ORDER BY d.fecha_subida DESC`,
     [idPropuesta]
@@ -56,7 +56,7 @@ export async function estudianteDePropuesta(idPropuesta: number): Promise<number
 export async function listarPorEstudiante(idEstudiante: number) {
   const [filas] = await pool.query<RowDataPacket[]>(
     `SELECT d.id_documento, d.id_propuesta, d.nombre_archivo, d.tipo_mime, d.tamano_bytes, d.fecha_subida,
-            u.nombre_usuario AS subido_por
+            u.nombre_usuario AS subido_por, u.rol AS rol_subio
      FROM documentos_revision d
      JOIN propuestas_generadas p ON p.id_propuesta = d.id_propuesta
      JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
