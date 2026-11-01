@@ -72,6 +72,7 @@ export async function listarTodasLasPropuestas(): Promise<PropuestaGenerada[]> {
      JOIN envios_revision env ON env.id_propuesta = p.id_propuesta
      JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
      JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+     WHERE f.objetivo_proyecto LIKE 'Desarrollar el anteproyecto del tema:%'
      ORDER BY env.fecha_envio DESC`
   );
   return filas as PropuestaGenerada[];

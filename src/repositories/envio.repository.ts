@@ -30,7 +30,9 @@ export function asegurarTablaEnvios(): Promise<void> {
       );
       await pool.query(
         `INSERT IGNORE INTO envios_revision (id_propuesta, fecha_envio)
-         SELECT id_propuesta, fecha_generacion FROM propuestas_generadas`
+         SELECT p.id_propuesta, p.fecha_generacion FROM propuestas_generadas p
+         JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
+         WHERE f.objetivo_proyecto LIKE 'Desarrollar el anteproyecto del tema:%'`
       );
     })().catch((error) => {
       lista = null; // se vuelve a intentar en la siguiente petición
@@ -95,6 +97,7 @@ export async function listarRecientes() {
      JOIN propuestas_generadas p ON p.id_propuesta = env.id_propuesta
      JOIN formularios_tesis f ON f.id_formulario = p.id_formulario
      LEFT JOIN estudiantes e ON e.id_estudiante = f.id_estudiante
+     WHERE f.objetivo_proyecto LIKE 'Desarrollar el anteproyecto del tema:%'
      ORDER BY env.id_envio DESC LIMIT 100`
   );
   return filas;
